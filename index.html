@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Henka Crop</title>
+<meta name="description" content="Straightens and crops trading card photos into square listing photos. Runs on your phone; photos are never uploaded.">
+<meta name="theme-color" content="#073f32">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Henka Crop">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="styles.css?v=202610270225">
+</head>
+<body>
+<header class="bar">
+  <div class="bar-inner">
+    <div class="brand">
+      <svg class="mark" viewBox="0 0 40 40" aria-hidden="true">
+        <rect x="1" y="1" width="38" height="38" rx="9" fill="none" stroke="#E3EEE8" stroke-width="1.5" stroke-dasharray="4 3"/>
+        <text x="20" y="27.5" text-anchor="middle" font-size="19" fill="#F4F0E5" font-family="'Hiragino Mincho ProN','Yu Mincho','Shippori Mincho',serif">変</text>
+      </svg>
+      <span class="brand-name">Henka <span>Crop</span></span>
+    </div>
+    <label class="btn btn-bar" id="add-more" hidden>Add photos<input type="file" accept="image/*" multiple hidden data-pick></label>
+  </div>
+</header>
+
+<main id="main">
+  <section class="intro" id="intro">
+    <h1>Square listing photos from your card shots</h1>
+    <p>Choose the photos you took. Each card is found, straightened and centered on a 2000 × 2000 photo, ready for eBay or the website. It all happens on this phone: nothing is uploaded.</p>
+    <label class="btn btn-primary btn-big">Choose photos<input type="file" accept="image/*" multiple hidden data-pick></label>
+    <ul class="tips">
+      <li>Shoot each card on a plain, dark surface, one card per photo.</li>
+      <li>Leave a little space around the card; it's fine if the phone is a bit tilted.</li>
+      <li>Avoid glare: turn the card or the light until the shine is gone.</li>
+    </ul>
+  </section>
+
+  <section class="results" id="results" hidden>
+    <p class="summary" id="summary" aria-live="polite"></p>
+    <div class="grid" id="grid"></div>
+  </section>
+</main>
+
+<div class="savebar" id="savebar" hidden>
+  <div class="savebar-inner">
+    <div class="save-text">
+      <b id="save-count"></b>
+      <button class="link" id="clear" type="button">Clear all</button>
+    </div>
+    <button class="btn btn-primary" id="save-all" type="button">Save photos</button>
+  </div>
+</div>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Photo" hidden></div>
+<div class="editor" id="editor" role="dialog" aria-modal="true" aria-label="Place corners" hidden></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="zip.js?v=202610270225"></script>
+<script src="app.js?v=202610270225"></script>
+</body>
+</html>
