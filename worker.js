@@ -4,7 +4,7 @@
 // out as a square listing photo. Nothing on the card is redrawn or cleaned
 // up: the warp only resamples the photo's own pixels.
 
-importScripts("engine.js?v=202610270225");
+importScripts("engine.js?v=202610270306");
 
 // A 2x1 JPEG tagged "rotate 90° clockwise": decoded 1x2 if the browser
 // applies EXIF orientation by itself.
@@ -90,15 +90,65 @@ async function jpeg(img, quality, longSide = 0) {
   return cv.convertToBlob({ type: "image/jpeg", quality });
 }
 
+/** EXIF (TIFF bytes) saying only when the original photo was taken, so
+ * Photos files the listing photo next to it, in shooting order. No
+ * location, no camera details. Null when the original doesn't say. */
+function takenExif(iso) {
+  const m = /^(\d{4})-(\d\d)-(\d\d)T(\d\d):(\d\d):(\d\d)(?:\.(\d+))?$/.exec(iso || "");
+  if (!m) return null;
+  const ascii = (s) => [...s].map((c) => c.charCodeAt(0)).concat(0);
+  const tags = [
+    [0x9000, 7, ascii("0232").slice(0, 4)], // ExifVersion
+    [0x9003, 2, ascii(`${m[1]}:${m[2]}:${m[3]} ${m[4]}:${m[5]}:${m[6]}`)], // DateTimeOriginal
+  ];
+  if (m[7]) tags.push([0x9291, 2, ascii(m[7])]); // SubSecTimeOriginal
+  // Big-endian TIFF: header, IFD0 holding only the Exif IFD's offset, the
+  // Exif IFD, then the values too long to sit in their entries.
+  const exifAt = 8 + 2 + 12 + 4;
+  let at = exifAt + 2 + 12 * tags.length + 4;
+  const b = new Uint8Array(at + tags.reduce((n, [, , v]) => n + (v.length > 4 ? v.length + (v.length & 1) : 0), 0));
+  const dv = new DataView(b.buffer);
+  b.set([0x4d, 0x4d, 0, 42, 0, 0, 0, 8]);
+  dv.setUint16(8, 1);
+  dv.setUint16(10, 0x8769);
+  dv.setUint16(12, 4);
+  dv.setUint32(14, 1);
+  dv.setUint32(18, exifAt);
+  dv.setUint16(exifAt, tags.length);
+  tags.forEach(([tag, type, v], k) => {
+    const e = exifAt + 2 + 12 * k;
+    dv.setUint16(e, tag);
+    dv.setUint16(e + 2, type);
+    dv.setUint32(e + 4, v.length);
+    if (v.length <= 4) b.set(v, e + 8);
+    else {
+      dv.setUint32(e + 8, at);
+      b.set(v, at);
+      at += v.length + (v.length & 1);
+    }
+  });
+  return b;
+}
+
+/** The JPEG with an EXIF segment added after its JFIF header. */
+async function withExif(blob, tiff) {
+  if (!tiff) return blob;
+  const head = new Uint8Array(await blob.slice(0, 6).arrayBuffer());
+  const after = head[2] === 0xff && head[3] === 0xe0 ? 4 + ((head[4] << 8) | head[5]) : 2;
+  const app1 = new Uint8Array(10);
+  app1.set([0xff, 0xe1, (8 + tiff.length) >> 8, (8 + tiff.length) & 255, 0x45, 0x78, 0x69, 0x66, 0, 0]);
+  return new Blob([blob.slice(0, after), app1, tiff, blob.slice(after)], { type: "image/jpeg" });
+}
+
 /** Straighten the card and lay it out on the square listing canvas. */
-async function listing(rgb, quad, ok, rotation, fill, aspect, holder) {
+async function listing(rgb, quad, ok, rotation, fill, aspect, holder, taken) {
   let margin = ok ? S.marginPct : S.reviewMarginPct;
   if (holder) margin = Math.max(margin, HK.crop.holderExtent(quad, holder, aspect) + S.marginPct);
   const crop = HK.crop.rectify(rgb, quad, margin, rotation, fill, aspect);
   const holderPx = holder ? CV.pyround(HK.crop.holderExtent(quad, holder, aspect) * (Math.min(crop.image.w, crop.image.h) - 2 * crop.margin)) : 0;
   const L = S.listing;
   const square = HK.crop.renderListing(crop.image, crop.margin, fill, L.canvas, L.long_side, L.card_fill, holderPx);
-  return { full: await jpeg(square, L.quality), preview: await jpeg(square, 0.82, 700) };
+  return { full: await withExif(await jpeg(square, L.quality), takenExif(taken)), preview: await jpeg(square, 0.82, 700) };
 }
 
 async function readPhoto(file) {
@@ -139,7 +189,7 @@ const ops = {
     }
     const out = { width: rgb.w, height: rgb.h, det };
     if (!det.quad) return out;
-    Object.assign(out, await listing(rgb, det.quad, det.status !== "needs_review", a.rotation || 0, det.fill || [0, 0, 0], det.aspect, det.holder));
+    Object.assign(out, await listing(rgb, det.quad, det.status !== "needs_review", a.rotation || 0, det.fill || [0, 0, 0], det.aspect, det.holder, meta.captured_at));
     return out;
   },
 

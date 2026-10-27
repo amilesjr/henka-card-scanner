@@ -1,14 +1,15 @@
 // Keeps Henka Crop working offline and opening instantly from the Home
 // Screen. Each release has its own cache; old ones are removed.
-const CACHE = "henka-crop-202610270225";
+const CACHE = "henka-crop-202610270306";
 const FILES = [
   "./",
   "index.html",
-  "styles.css?v=202610270225",
-  "app.js?v=202610270225",
-  "zip.js?v=202610270225",
-  "worker.js?v=202610270225",
-  "engine.js?v=202610270225",
+  "styles.css?v=202610270306",
+  "app.js?v=202610270306",
+  "zip.js?v=202610270306",
+  "exif.js?v=202610270306",
+  "worker.js?v=202610270306",
+  "engine.js?v=202610270306",
   "manifest.webmanifest",
   "icons/icon-192.png",
   "icons/icon-512.png",

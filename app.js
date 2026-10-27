@@ -34,7 +34,7 @@
       }
     }
     spawn() {
-      const w = new Worker("worker.js?v=202610270225");
+      const w = new Worker("worker.js?v=202610270306");
       w.job = null;
       w.onmessage = (e) => {
         const job = w.job;
@@ -61,8 +61,8 @@
 
   // ---------------------------------------------------------------- state
 
-  /** One chosen photo: {id, file, name, state, det, rotation, confirmed,
-   * full (Blob), preview (URL), saved, error}. */
+  /** One chosen photo: {id, file, name, taken, state, det, rotation,
+   * confirmed, full (Blob), preview (URL), saved, error}. */
   const items = [];
   let nextId = 1;
   let open = null; // item shown in the sheet
@@ -85,16 +85,37 @@
     it.preview = it.fullUrl = null;
   }
 
-  function addFiles(list) {
+  /** When the photo was taken ("2026-10-24T19:39:41.128"), from its EXIF;
+   * null if it doesn't say. The EXIF block sits at the start of a JPEG. */
+  async function takenAt(file) {
+    try {
+      let meta = HK.exif.read(await file.slice(0, 256 * 1024).arrayBuffer());
+      if (!meta.captured_at && meta.kind === "heif") meta = HK.exif.read(await file.arrayBuffer());
+      return meta.captured_at;
+    } catch {
+      return null;
+    }
+  }
+
+  // The phone's photo picker doesn't always hand photos over in the order
+  // they were taken: list them by capture time, or by file name (IMG_0828,
+  // IMG_0829...) when some photos don't say when they were taken.
+  const byName = new Intl.Collator(undefined, { numeric: true }).compare;
+  function sortItems() {
+    const timed = items.every((it) => it.taken);
+    items.sort((a, b) => (timed && a.taken !== b.taken ? (a.taken < b.taken ? -1 : 1) : 0) || byName(a.name, b.name) || a.id - b.id);
+  }
+
+  async function addFiles(list) {
     const files = [...list].filter((f) => OK_FILE.test(f.name) || /^image\//.test(f.type));
     if (!files.length) return toast("Those files aren't photos.", true);
-    for (const file of files) {
-      const it = { id: nextId++, file, name: file.name || "photo.jpg", state: "waiting", rotation: 0, confirmed: false, saved: false };
-      items.push(it);
-      process(it);
-    }
+    const added = files.map((file) => ({ id: nextId++, file, name: file.name || "photo.jpg", state: "waiting", rotation: 0, confirmed: false, saved: false }));
+    await Promise.all(added.map(async (it) => (it.taken = await takenAt(it.file))));
+    items.push(...added);
+    sortItems();
     renderGrid();
     update();
+    for (const it of items) if (added.includes(it)) process(it);
   }
 
   async function process(it, extra = {}) {

@@ -11,6 +11,9 @@ Photos through the share sheet.
   stored. Closing the page clears the list.
 - Originals are never changed. Only the card is straightened and cropped: nothing on it is cleaned
   up, retouched or redrawn, so wear stays visible.
+- Photos are listed, and saved, in the order they were taken. Each saved photo carries only the time
+  its original was taken (no location, no camera details), so Photos files it right next to the
+  original.
 - When the card's outline is uncertain the photo is marked **Check** instead of being saved as if it
   were right. You can keep it, or place the four corners by hand.
 

@@ -1,4 +1,4 @@
-// Henka Crop engine (built 202610270225): card detection and straightening.
+// Henka Crop engine (built 202610270306): card detection and straightening.
 // The handful of OpenCV operations the Henka engine uses, in plain
 // JavaScript so the phone app needs no native code or WebAssembly.
 //
